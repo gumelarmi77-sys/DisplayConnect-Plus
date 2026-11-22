@@ -1,111 +1,71 @@
-# DisplayConnect+ (Plus) 🚀
+# DisplayConnect+
 
-Solusi terintegrasi untuk menampilkan **Notifikasi WhatsApp**, **Panggilan Telepon Masuk**, dan **Media Player Controller (Play, Pause, Next, Prev, Volume)** langsung di layar **ESP32 CYD (Cheap Yellow Display ESP32-2432S028)** melalui koneksi **Bluetooth Low Energy (BLE)**.
+## Overview
 
-Repository ini sudah dirancang **100% Plug-and-Play**:
-1. **Android App:** Sudah dilengkapi **GitHub Actions CI/CD**. Anda **tidak perlu menginstal Android Studio di komputer**. Cukup push project ini ke repository GitHub Anda, dan GitHub Actions akan otomatis meng-compile dan menghasilkan file `app-debug.apk` siap download dan install ke HP!
-2. **ESP32 Firmware:** Menggunakan library modern **LovyanGFX** dan **ArduinoJson**. Tidak perlu edit file konfigurasi library (`User_Setup.h` dll). Cukup buka di **Arduino IDE**, pasang 2 library via Library Manager, dan langsung klik **Upload**!
+DisplayConnect+ is an Android application paired with an ESP32‑CYD board that displays notifications, call alerts, media controls, and simple navigation HUD/map on a small screen via Bluetooth Low Energy (BLE).
 
----
+- **No Android Studio required** – the project builds with the Gradle wrapper and GitHub Actions.
+- **No external Google Maps API key** – navigation data is extracted from Android notifications (Google Maps, Waze, etc.) and sent to the ESP32 as JSON.
+- **ESP32 firmware** parses the JSON and shows either a HUD style text overlay or a simple map on the CYD display, with touch‑controlled media buttons.
 
-## 📂 Struktur Direktori
+## Repository Structure
 
-```text
+```
 DisplayConnect-Plus/
-├── .github/workflows/
-│   └── build-apk.yml               # Workflow otomatis pembuat APK di GitHub
-├── app/                            # Source code Aplikasi Android (Kotlin)
-│   ├── src/main/java/com/displayconnect/plus/
-│   │   ├── ble/BleManager.kt       # BLE Nordic UART Service (NUS) Scanner & Handler
-│   │   ├── media/MediaHelper.kt    # Controller Spotify/YT Music & Volume
-│   │   ├── service/DisplayNotificationService.kt # Listener Notif WhatsApp & Call
-│   │   └── MainActivity.kt         # Tampilan Antarmuka Aplikasi HP
-│   └── src/main/AndroidManifest.xml
-├── DisplayConnect_CYD/
-│   └── DisplayConnect_CYD.ino      # Sketch Firmware Arduino untuk ESP32 CYD
-├── build.gradle.kts
-├── settings.gradle.kts
-└── README.md
+├─ app/                  # Android source code (Kotlin)
+│   ├─ src/main/java/...   (BLE, notification service, UI)
+│   └─ src/main/res/...    (layouts, icons)
+├─ DisplayConnect_CYD/   # Arduino sketch for ESP32‑CYD
+│   └─ DisplayConnect_CYD.ino
+├─ .github/workflows/    # GitHub Actions CI to build the APK
+│   └─ build-apk.yml
+├─ gradle/               # Gradle wrapper files
+├─ .gitignore
+└─ README.md
 ```
 
----
+## Prerequisites
 
-## 📱 BAGIAN 1: Mendapatkan APK Android (Tanpa Android Studio)
+- **JDK 17** (or later) – required by the Gradle wrapper.
+- **Git** – for version control.
+- **Arduino IDE** (or PlatformIO) with the following libraries installed:
+  - `LovyanGFX`
+  - `ArduinoJson`
+- **Android device** with BLE, location, and notification‑access permissions.
+- **ESP32‑CYD board** with the screen wired (backlight GPIO 21 or 27).
 
-Anda hanya butuh akun GitHub gratis:
+## Building the Android App Locally
 
-1. **Buat Repository Baru di GitHub**:
-   - Buka [github.com/new](https://github.com/new).
-   - Beri nama repository, misalnya `DisplayConnect-Plus`, set ke **Public** (agar runner Actions gratis tanpa batas kuota).
-2. **Push Project ini ke GitHub**:
-   Buka terminal di folder project ini:
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit DisplayConnect Plus"
-   git branch -M main
-   git remote add origin https://github.com/USERNAME_ANDA/DisplayConnect-Plus.git
-   git push -u origin main
-   ```
-3. **Download APK yang Jadi**:
-   - Buka tab **Actions** di halaman repository GitHub Anda.
-   - Anda akan melihat workflow **Build Android APK** sedang berjalan (icon oranye/berputar).
-   - Tunggu sekitar 2–3 menit hingga icon berubah menjadi centang hijau ✅ **Success**.
-   - Klik workflow tersebut, gulir ke bagian paling bawah di **Artifacts**, klik **DisplayConnectPlus-Debug-APK** untuk mendownload zip yang berisi `app-debug.apk`.
-   - Atau buka tab **Releases** di samping kanan repository Anda untuk mendownload langsung file APK-nya ke HP Android Anda.
-4. **Instal di HP**:
-   - Buka file `.apk` di HP Android dan pilih *Install* (Izinkan *Install from unknown sources* jika diminta).
+```bash
+# From the repo root
+./gradlew clean assembleDebug
+```
 
----
+The generated APK will be located at `app/build/outputs/apk/debug/app-debug.apk`.
 
-## 📟 BAGIAN 2: Upload Firmware ke ESP32 CYD via Arduino IDE
+## GitHub Actions Build (CI)
 
-### 1. Persiapan Arduino IDE
-Pastikan Anda sudah menginstal **Arduino IDE** (v2.x disarankan) dan menambahkan board **ESP32**:
-* Di Arduino IDE: Masuk ke **File** -> **Preferences** -> Masukkan URL Board Manager:
-  `https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json`
-* Masuk ke **Tools** -> **Board** -> **Boards Manager**, cari `esp32` oleh *Espressif Systems*, lalu klik **Install**.
+The workflow `.github/workflows/build-apk.yml` runs on every push to `main` and produces the same `app-debug.apk` as an artifact.
 
-### 2. Install Library yang Dibutuhkan
-Buka **Tools** -> **Manage Libraries...** (atau tekan `Ctrl + Shift + I`), cari dan install:
-1. **LovyanGFX** (oleh *lovyan03*)
-2. **ArduinoJson** (oleh *Benoit Blanchon*)
-*(Catatan: Library BLE sudah bawaan dari core ESP32, tidak perlu diinstal lagi).*
+## Deploying the ESP32 Firmware
 
-### 3. Pengaturan Board & Upload
-1. Buka file: `DisplayConnect_CYD/DisplayConnect_CYD.ino`.
-2. Pasang kabel USB dari komputer ke modul **ESP32 CYD (ESP32-2432S028)**.
-3. Atur menu di **Tools**:
-   - **Board**: `ESP32 Dev Module`
-   - **Upload Speed**: `921600` (atau `115200` jika kabel USB Anda panjang)
-   - **Flash Frequency**: `80MHz`
-   - **Partition Scheme**: `Huge APP (3MB No OTA/1MB SPIFFS)`
-   - **Port**: Pilih port COM ESP32 Anda.
-4. Klik tombol **Upload** (Tanda panah ke kanan).
-5. Tunggu hingga proses kompilasi dan flash selesai 100%. Layar CYD akan menyala menampilkan antarmuka DisplayConnect+.
+1. Open `DisplayConnect_CYD/DisplayConnect_CYD.ino` in the Arduino IDE.
+2. Select **ESP32 Dev Module** (or the appropriate board).
+3. Choose the correct **Flash Frequency**, **Upload Speed**, and **Port**.
+4. Click **Upload**.
 
-> **Tips Catatan Backlight:**
-> Pada 95% varian CYD standar, pin backlight layar adalah **GPIO 21**. Jika setelah upload layar terlihat hitam namun tulisan di Serial Monitor muncul normal, cukup ganti satu baris pada sketch:
-> `cfg.pin_bl = 21;` menjadi `cfg.pin_bl = 27;` lalu upload kembali.
+## Usage
 
----
+1. Install the APK on your Android device and grant **Notification Access**, **Location**, and **Bluetooth** permissions.
+2. Launch the app, tap **Scan & Connect** to pair with the ESP32 board.
+3. The ESP32 will display incoming WhatsApp messages, call alerts, media controls, and navigation data.
+4. In the **Navigation** screen you can start a navigation session; the app extracts coordinates from the Google Maps (or compatible) notification and sends them to the ESP32.
+5. Touch the top‑right corner of the screen on the ESP32 to toggle between HUD text and a simple map view.
 
-## 🚴 BAGIAN 3: Cara Penggunaan & Pengujian
+## Contributing
 
-1. **Nyalakan ESP32 CYD**: Layar akan menampilkan tulisan `BLE: TERPUTUS` di sudut kanan atas.
-2. **Buka Aplikasi DisplayConnect+ di HP**:
-   - Berikan izin Bluetooth & Lokasi saat diminta.
-   - Klik tombol **"Buka Pengaturan Akses Notifikasi"**, lalu cari **DisplayConnect+** dan geser switch ke posisi **Aktif (ON)**. Ini wajib agar notifikasi WhatsApp dan kontrol media musik terbaca.
-3. **Hubungkan BLE**:
-   - Klik tombol **"Scan & Hubungkan"**.
-   - Dalam 2–5 detik, status di HP dan di layar CYD akan berubah menjadi hijau: `BLE: TERHUBUNG`.
-4. **Uji Coba Fitur**:
-   - **WhatsApp:** Saat ada pesan WhatsApp masuk ke HP, layar CYD langsung menampilkan pop-up hijau dengan nama pengirim dan isi pesan selama 7 detik (atau tap layar untuk langsung menutup). Anda juga bisa klik tombol **"Test WA"** di aplikasi HP.
-   - **Panggilan Masuk:** Saat ada telepon masuk, layar CYD langsung berganti banner merah besar berkedip dengan nama penelepon.
-   - **Media Player:** Putar lagu di Spotify atau YouTube Music di HP. Judul lagu dan nama artis akan langsung muncul di layar CYD.
-   - **Tombol Layar Sentuh CYD:**
-     - `|<<` : Lagu Sebelumnya (Previous Track)
-     - `>/||` : Play / Pause
-     - `>>|` : Lagu Berikutnya (Next Track)
-     - `V -` : Turunkan Volume HP
-     - `V +` : Naikkan Volume HP
+Feel free to open issues or submit pull requests. Ensure that any new code follows the existing structure and updates the corresponding ESP32 JSON handling if new notification types are added.
+
+## License
+
+This project is licensed under the **MIT License**.
