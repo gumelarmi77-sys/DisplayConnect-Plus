@@ -23,7 +23,13 @@ jobs:
           java-version: '17'
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+  uses: android-actions/setup-android@v3
+  with:
+    # Keep only the packages that exist in the current SDK repository
+    packages: |
+      platform-tools                # adb, fastboot, etc.
+      platforms;android-34          # compileSdk = 34 (or any API you target)
+      build-tools;34.0.0            # matching build‑tools version
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
